@@ -1,7 +1,7 @@
 use crate::{
     events::EventSubscription,
     meta::{APIVersion, Kind, ObjectMeta, TypeMeta},
-    rest::{Client, ClientConfig},
+    rest::{Client, ClientConfig, EmptyBody},
     worker::WorkerSpec,
 };
 use anyhow::{Error, Result};
@@ -49,7 +49,8 @@ impl ProjectsClient {
 
     pub async fn get(&self, id: String) -> Result<Project, Error> {
         let url = format!("{}/v2/projects/{}", self.client.address, id);
-        let res = self.client.req(url, Method::GET).await?;
+        let none_opt: Option<&EmptyBody> = None;
+        let res = self.client.req(url, Method::GET, none_opt).await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
     }
@@ -57,10 +58,7 @@ impl ProjectsClient {
     pub async fn create(&self, project: &mut Project) -> Result<Project, Error> {
         let url = format!("{}/v2/projects", self.client.address);
         self.ensure_project_meta(project);
-        let res = self
-            .client
-            .req_with_body(url, Method::POST, &project)
-            .await?;
+        let res = self.client.req(url, Method::POST, Some(&project)).await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
     }
@@ -71,12 +69,8 @@ impl ProjectsClient {
             self.client.address, project.metadata.id
         );
         self.ensure_project_meta(project);
-        let res = self
-            .client
-            .req_with_body(url, Method::PUT, &project)
-            .await?;
+        let res = self.client.req(url, Method::PUT, Some(&project)).await?;
         let str = &res.text().await?.to_string();
-        println!("RAW: {}", str);
         let project: Project = serde_json::from_str(str)?;
         Ok(project)
     }
