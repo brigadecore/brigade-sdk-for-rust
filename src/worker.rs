@@ -5,7 +5,7 @@ use serde_with::*;
 use std::collections::HashMap;
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkerSpec {
     pub container: Option<ContainerSpec>,
@@ -19,7 +19,7 @@ pub struct WorkerSpec {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GitConfig {
     #[serde(rename = "cloneURL")]
@@ -30,21 +30,21 @@ pub struct GitConfig {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct KubernetesConfig {
     image_pull_secrets: Option<Vec<String>>,
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct JobPolicies {
     allow_provileged: Option<bool>,
     allow_docker_soecket_mount: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum LogLevel {
     #[serde(rename = "DEBUG")]
     Debug,
@@ -56,7 +56,7 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum WorkerPhase {
     #[serde(rename = "ABORTED")]
     Aborted,

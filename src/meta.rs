@@ -1,27 +1,27 @@
 use serde::{Deserialize, Serialize};
 use serde_with::*;
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ObjectMeta {
     pub id: String,
     pub created: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TypeMeta {
     pub kind: Kind,
     pub api_version: APIVersion,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum APIVersion {
     #[serde(rename = "brigade.sh/v2")]
     V2,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum Kind {
     Token,
     Project,

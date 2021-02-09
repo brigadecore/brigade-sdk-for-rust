@@ -1,7 +1,8 @@
 use crate::error::BrigadeError;
 use hyper::Method;
 use reqwest::Response;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use serde_with::*;
 
 #[derive(Debug, Clone)]
 pub struct ClientConfig {
@@ -40,35 +41,24 @@ impl Client {
         })
     }
 
-    pub async fn req(&self, url: String, method: Method) -> Result<Response, BrigadeError> {
-        let token = self.token.clone().unwrap();
-        let res = self
-            .rest
-            .request(method, &url)
-            .bearer_auth(token)
-            .send()
-            .await?;
-
-        Ok(res)
-    }
-
-    // TODO
-    // replacing body: Option<&T> should work
-    pub async fn req_with_body<T: Serialize + ?Sized>(
+    pub async fn req<T: Serialize + ?Sized>(
         &self,
         url: String,
         method: Method,
-        body: &T,
+        body: Option<&T>,
     ) -> Result<Response, BrigadeError> {
         let token = self.token.clone().unwrap();
-        let res = self
-            .rest
-            .request(method, &url)
-            .bearer_auth(token)
-            .json(&body)
-            .send()
-            .await?;
+        let req = self.rest.request(method, &url).bearer_auth(token);
+        let res = match body {
+            Some(body) => req.json(body).send().await?,
+            None => req.send().await?,
+        };
 
         Ok(res)
     }
 }
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct EmptyBody {}
