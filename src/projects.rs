@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::*;
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Project {
     pub metadata: ObjectMeta,
@@ -23,7 +23,7 @@ pub struct Project {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectSpec {
     pub event_subscriptions: Option<Vec<EventSubscription>>,
@@ -31,7 +31,7 @@ pub struct ProjectSpec {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct KubernetesDetails {
     namespace: Option<String>,
@@ -49,26 +49,30 @@ impl ProjectsClient {
 
     pub async fn get(&self, id: String) -> Result<Project, Error> {
         let url = format!("{}/v2/projects/{}", self.client.address, id);
-        let none_opt: Option<&EmptyBody> = None;
-        let res = self.client.req(url, Method::GET, none_opt).await?;
+        let res = self
+            .client
+            .req(url, Method::GET, None::<&EmptyBody>)
+            .await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
     }
 
-    pub async fn create(&self, project: &mut Project) -> Result<Project, Error> {
+    pub async fn create(&self, project: &Project) -> Result<Project, Error> {
         let url = format!("{}/v2/projects", self.client.address);
-        self.ensure_project_meta(project);
+        let mut project = project.clone();
+        self.ensure_project_meta(&mut project);
         let res = self.client.req(url, Method::POST, Some(&project)).await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
     }
 
-    pub async fn update(&self, project: &mut Project) -> Result<Project, Error> {
+    pub async fn update(&self, project: &Project) -> Result<Project, Error> {
         let url = format!(
             "{}/v2/projects/{}",
             self.client.address, project.metadata.id
         );
-        self.ensure_project_meta(project);
+        let mut project = project.clone();
+        self.ensure_project_meta(&mut project);
         let res = self.client.req(url, Method::PUT, Some(&project)).await?;
         let str = &res.text().await?.to_string();
         let project: Project = serde_json::from_str(str)?;
@@ -127,7 +131,7 @@ mod test {
         console.log("Hello, World!")
     "#;
         default_config_files.insert("brigade.js".to_string(), val.to_string());
-        let mut project = Project {
+        let project = Project {
             metadata: ObjectMeta {
                 id: String::from("hello-rust-sdk"),
                 created: None,
@@ -150,7 +154,7 @@ mod test {
             kubernetes: None,
         };
 
-        let project = pc.create(&mut project).await.unwrap();
+        let project = pc.create(&project).await.unwrap();
         println!("{:#?}", project);
     }
 
@@ -165,7 +169,7 @@ mod test {
         let mut p = pc.get("hello-rust-sdk".to_string()).await.unwrap();
         p.description = Some("totally new descrption".to_string());
 
-        pc.update(&mut p).await.unwrap();
+        pc.update(&p).await.unwrap();
     }
 
     async fn get_token(address: String, cfg: ClientConfig) -> Token {
