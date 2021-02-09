@@ -1,7 +1,7 @@
 use crate::{
     events::EventSubscription,
     meta::{APIVersion, Kind, ObjectMeta, TypeMeta},
-    rest::{Client, ClientConfig, EmptyBody},
+    rest::{Client, ClientConfig, Empty},
     worker::WorkerSpec,
 };
 use anyhow::{Error, Result};
@@ -20,6 +20,21 @@ pub struct Project {
     pub description: Option<String>,
     pub spec: ProjectSpec,
     pub kubernetes: Option<KubernetesDetails>,
+}
+
+impl Project {
+    pub fn default(id: String, description: String, script: String) -> Self {
+        Project {
+            metadata: ObjectMeta { id, created: None },
+            type_meta: None,
+            description: Some(description),
+            spec: ProjectSpec {
+                event_subscriptions: None,
+                worker_template: WorkerSpec::default(script),
+            },
+            kubernetes: None,
+        }
+    }
 }
 
 #[skip_serializing_none]
@@ -51,7 +66,7 @@ impl ProjectsClient {
         let url = format!("{}/v2/projects/{}", self.client.address, id);
         let res = self
             .client
-            .req(url, Method::GET, None::<&EmptyBody>)
+            .req(url, Method::GET, None::<&Empty>, None::<&Empty>, None)
             .await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
@@ -61,7 +76,10 @@ impl ProjectsClient {
         let url = format!("{}/v2/projects", self.client.address);
         let mut project = project.clone();
         self.ensure_project_meta(&mut project);
-        let res = self.client.req(url, Method::POST, Some(&project)).await?;
+        let res = self
+            .client
+            .req(url, Method::POST, Some(&project), None::<&Empty>, None)
+            .await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
     }
@@ -73,7 +91,10 @@ impl ProjectsClient {
         );
         let mut project = project.clone();
         self.ensure_project_meta(&mut project);
-        let res = self.client.req(url, Method::PUT, Some(&project)).await?;
+        let res = self
+            .client
+            .req(url, Method::PUT, Some(&project), None::<&Empty>, None)
+            .await?;
         let str = &res.text().await?.to_string();
         let project: Project = serde_json::from_str(str)?;
         Ok(project)
@@ -94,15 +115,11 @@ impl ProjectsClient {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use crate::{
         authn::SessionsClient,
         authn::Token,
-        meta::ObjectMeta,
-        projects::{Project, ProjectSpec, ProjectsClient},
+        projects::{Project, ProjectsClient},
         rest::ClientConfig,
-        worker::WorkerSpec,
     };
 
     #[tokio::test]
@@ -126,33 +143,15 @@ mod test {
         let token = get_token(String::from(address), cfg.clone()).await;
         let pc = ProjectsClient::new(String::from(address), cfg, Some(token.value)).unwrap();
 
-        let mut default_config_files: HashMap<String, String> = HashMap::new();
-        let val = r#"
+        let script = r#"
         console.log("Hello, World!")
-    "#;
-        default_config_files.insert("brigade.js".to_string(), val.to_string());
-        let project = Project {
-            metadata: ObjectMeta {
-                id: String::from("hello-rust-sdk"),
-                created: None,
-            },
-            type_meta: None,
-            description: Some(String::from("A project created from the Brigade Rust SDK")),
-            spec: ProjectSpec {
-                event_subscriptions: None,
-                worker_template: WorkerSpec {
-                    container: None,
-                    use_workspace: None,
-                    workspace_size: None,
-                    git: None,
-                    job_policies: None,
-                    log_level: None,
-                    config_files_directory: None,
-                    default_config_files: Some(default_config_files),
-                },
-            },
-            kubernetes: None,
-        };
+    "#
+        .to_string();
+        let project = Project::default(
+            String::from("hello-rust-sdk"),
+            String::from("A project created from the Brigade Rust SDK"),
+            script,
+        );
 
         let project = pc.create(&project).await.unwrap();
         println!("{:#?}", project);
