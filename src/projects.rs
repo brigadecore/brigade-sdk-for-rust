@@ -23,14 +23,14 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn default(id: String, description: String, script: String) -> Self {
+    pub fn new(id: String, description: String, script: String) -> Self {
         Project {
             metadata: ObjectMeta { id, created: None },
             type_meta: None,
             description: Some(description),
             spec: ProjectSpec {
                 event_subscriptions: None,
-                worker_template: WorkerSpec::default(script),
+                worker_template: WorkerSpec::new(script),
             },
             kubernetes: None,
         }
@@ -147,7 +147,7 @@ mod test {
         console.log("Hello, World!")
     "#
         .to_string();
-        let project = Project::default(
+        let project = Project::new(
             String::from("hello-rust-sdk"),
             String::from("A project created from the Brigade Rust SDK"),
             script,

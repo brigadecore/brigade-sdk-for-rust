@@ -10,7 +10,7 @@ pub struct ClientConfig {
 }
 
 impl ClientConfig {
-    pub fn default() -> Self {
+    pub fn new() -> Self {
         Self {
             allow_insecure_connections: false,
         }

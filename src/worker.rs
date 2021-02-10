@@ -19,7 +19,7 @@ pub struct WorkerSpec {
 }
 
 impl WorkerSpec {
-    pub fn default(script: String) -> Self {
+    pub fn new(script: String) -> Self {
         let mut default_config_files: HashMap<String, String> = HashMap::new();
         default_config_files.insert("brigade.js".to_string(), script);
 
