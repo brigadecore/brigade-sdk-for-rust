@@ -64,11 +64,6 @@ impl ProjectsClient {
 
     pub async fn get(&self, id: String) -> Result<Project, Error> {
         let url = format!("{}/v2/projects/{}", self.client.address, id);
-        // let res = self
-        //     .client
-        //     .req(url, Method::GET, None::<&Empty>, None::<&Empty>, None)
-        //     .await?;
-
         let res = self.client.req(Method::GET, &url).send().await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
@@ -158,7 +153,6 @@ mod test {
             String::from("A project created from the Brigade Rust SDK"),
             script,
         );
-
         let project = pc.create(&project).await.unwrap();
         println!("{:#?}", project);
     }
@@ -173,7 +167,6 @@ mod test {
         let pc = ProjectsClient::new(String::from(address), cfg, Some(token.value)).unwrap();
         let mut p = pc.get("hello-rust-sdk".to_string()).await.unwrap();
         p.description = Some("totally new descrption".to_string());
-
         pc.update(&p).await.unwrap();
     }
 
@@ -183,7 +176,6 @@ mod test {
             .create_root_session("F00Bar!!!".to_string())
             .await
             .unwrap();
-
         token
     }
 }
