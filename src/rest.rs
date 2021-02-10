@@ -19,7 +19,7 @@ pub struct Client {
     pub config: ClientConfig,
     pub address: String,
     pub token: Option<String>,
-    pub rest: reqwest::Client,
+    rest: reqwest::Client,
 }
 
 impl Client {
@@ -41,7 +41,7 @@ impl Client {
 
     pub fn req<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
         let req = self.rest.request(method, url);
-        match self.token.clone() {
+        match self.token.as_ref() {
             Some(t) => req.bearer_auth(t),
             None => req,
         }

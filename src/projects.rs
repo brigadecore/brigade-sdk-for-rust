@@ -116,12 +116,8 @@ impl ProjectsClient {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        authn::SessionsClient,
-        authn::Token,
-        projects::{Project, ProjectsClient},
-        rest::ClientConfig,
-    };
+    use super::*;
+    use crate::{authn::SessionsClient, authn::Token, rest::ClientConfig};
 
     #[tokio::test]
     async fn test_get_project() {
