@@ -1,11 +1,11 @@
 use crate::{
     events::EventSubscription,
     meta::{APIVersion, Kind, ObjectMeta, TypeMeta},
-    rest::{Client, ClientConfig, Empty},
+    rest::{Client, ClientConfig},
     worker::WorkerSpec,
 };
 use anyhow::{Error, Result};
-use hyper::Method;
+use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_with::*;
 
@@ -64,10 +64,12 @@ impl ProjectsClient {
 
     pub async fn get(&self, id: String) -> Result<Project, Error> {
         let url = format!("{}/v2/projects/{}", self.client.address, id);
-        let res = self
-            .client
-            .req(url, Method::GET, None::<&Empty>, None::<&Empty>, None)
-            .await?;
+        // let res = self
+        //     .client
+        //     .req(url, Method::GET, None::<&Empty>, None::<&Empty>, None)
+        //     .await?;
+
+        let res = self.client.req(Method::GET, &url).send().await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
     }
@@ -78,7 +80,9 @@ impl ProjectsClient {
         self.ensure_project_meta(&mut project);
         let res = self
             .client
-            .req(url, Method::POST, Some(&project), None::<&Empty>, None)
+            .req(Method::POST, &url)
+            .json(&project)
+            .send()
             .await?;
         let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
         Ok(project)
@@ -93,7 +97,9 @@ impl ProjectsClient {
         self.ensure_project_meta(&mut project);
         let res = self
             .client
-            .req(url, Method::PUT, Some(&project), None::<&Empty>, None)
+            .req(Method::PUT, &url)
+            .json(&project)
+            .send()
             .await?;
         let str = &res.text().await?.to_string();
         let project: Project = serde_json::from_str(str)?;
