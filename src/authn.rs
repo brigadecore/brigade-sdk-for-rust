@@ -3,6 +3,7 @@ use crate::{
     rest::{Client, ClientConfig},
 };
 use anyhow::Error;
+use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -28,14 +29,12 @@ impl SessionsClient {
         let url = format!("{}/v2/sessions", self.client.address);
         let res = self
             .client
-            .rest
-            .post(&url)
+            .req(Method::POST, &url)
             .query(&[("root", "true")])
-            .basic_auth("root", Some(pwd))
+            .basic_auth(String::from("root"), Some(pwd))
             .send()
             .await?;
         let token: Token = serde_json::from_str(&res.text().await?.to_string())?;
-
         Ok(token)
     }
 }

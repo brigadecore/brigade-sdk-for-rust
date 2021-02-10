@@ -18,6 +18,24 @@ pub struct WorkerSpec {
     pub default_config_files: Option<HashMap<String, String>>,
 }
 
+impl WorkerSpec {
+    pub fn new(script: String) -> Self {
+        let mut default_config_files: HashMap<String, String> = HashMap::new();
+        default_config_files.insert("brigade.js".to_string(), script);
+
+        WorkerSpec {
+            container: None,
+            use_workspace: None,
+            workspace_size: None,
+            git: None,
+            job_policies: None,
+            log_level: None,
+            config_files_directory: None,
+            default_config_files: Some(default_config_files),
+        }
+    }
+}
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

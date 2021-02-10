@@ -1,8 +1,5 @@
 use crate::error::BrigadeError;
-use hyper::Method;
-use reqwest::Response;
-use serde::{Deserialize, Serialize};
-use serde_with::*;
+use reqwest::{IntoUrl, Method, RequestBuilder};
 
 #[derive(Debug, Clone)]
 pub struct ClientConfig {
@@ -10,18 +7,19 @@ pub struct ClientConfig {
 }
 
 impl ClientConfig {
-    pub fn default() -> Self {
+    pub fn new() -> Self {
         Self {
             allow_insecure_connections: false,
         }
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Client {
     pub config: ClientConfig,
     pub address: String,
     pub token: Option<String>,
-    pub rest: reqwest::Client,
+    rest: reqwest::Client,
 }
 
 impl Client {
@@ -36,29 +34,16 @@ impl Client {
         Ok(Client {
             config,
             address,
-            token: token,
+            token,
             rest: client,
         })
     }
 
-    pub async fn req<T: Serialize + ?Sized>(
-        &self,
-        url: String,
-        method: Method,
-        body: Option<&T>,
-    ) -> Result<Response, BrigadeError> {
-        let token = self.token.clone().unwrap();
-        let req = self.rest.request(method, &url).bearer_auth(token);
-        let res = match body {
-            Some(body) => req.json(body).send().await?,
-            None => req.send().await?,
-        };
-
-        Ok(res)
+    pub fn req<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
+        let req = self.rest.request(method, url);
+        match self.token.as_ref() {
+            Some(t) => req.bearer_auth(t),
+            None => req,
+        }
     }
 }
-
-#[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct EmptyBody {}
