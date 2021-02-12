@@ -29,7 +29,7 @@ impl SessionsClient {
         let url = format!("{}/v2/sessions", self.client.address);
         let res = self
             .client
-            .req(Method::POST, &url)
+            .req(Method::POST, &url, None)
             .query(&[("root", "true")])
             .basic_auth(String::from("root"), Some(pwd))
             .send()
