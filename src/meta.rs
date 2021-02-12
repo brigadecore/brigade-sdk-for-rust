@@ -27,6 +27,32 @@ pub enum Kind {
     Project,
 }
 
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct List<T: Serialize + Sized> {
+    pub metadata: ListMeta,
+    pub items: Vec<T>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ListOptions {
+    #[serde(rename = "continue")]
+    pub continue_id: Option<String>,
+    pub limit: Option<i32>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ListMeta {
+    #[serde(rename = "continue")]
+    pub continue_id: Option<String>,
+    pub remaining_item_count: Option<i32>,
+}
+
 #[test]
 fn test_type_meta_serialization() {
     let tm = TypeMeta {

@@ -1,4 +1,4 @@
-use crate::error::BrigadeError;
+use crate::{error::BrigadeError, meta::ListOptions};
 use reqwest::{IntoUrl, Method, RequestBuilder};
 
 #[derive(Debug, Clone)]
@@ -39,11 +39,26 @@ impl Client {
         })
     }
 
-    pub fn req<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
-        let req = self.rest.request(method, url);
-        match self.token.as_ref() {
-            Some(t) => req.bearer_auth(t),
-            None => req,
+    pub fn req<U: IntoUrl>(
+        &self,
+        method: Method,
+        url: U,
+        opts: Option<ListOptions>,
+    ) -> RequestBuilder {
+        let mut req = self.rest.request(method, url);
+
+        if let Some(token) = self.token.as_ref() {
+            req = req.bearer_auth(token);
+        };
+        if let Some(opts) = opts {
+            if let Some(c) = opts.continue_id {
+                req = req.query(&[("continue", c)]);
+            }
+            if let Some(l) = opts.limit {
+                req = req.query(&[("limit", l)]);
+            }
         }
+
+        req
     }
 }
