@@ -1,8 +1,17 @@
-use crate::container::ContainerSpec;
-
+use crate::{container::ContainerSpec, job::Job};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::*;
 use std::collections::HashMap;
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Worker {
+    pub spec: WorkerSpec,
+    pub status: WorkerStatus,
+    pub jobs: Option<HashMap<String, Job>>,
+}
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -12,6 +21,7 @@ pub struct WorkerSpec {
     pub use_workspace: Option<bool>,
     pub workspace_size: Option<String>,
     pub git: Option<GitConfig>,
+    pub kubernetes: Option<KubernetesConfig>,
     pub job_policies: Option<JobPolicies>,
     pub log_level: Option<LogLevel>,
     pub config_files_directory: Option<String>,
@@ -28,6 +38,7 @@ impl WorkerSpec {
             use_workspace: None,
             workspace_size: None,
             git: None,
+            kubernetes: None,
             job_policies: None,
             log_level: None,
             config_files_directory: None,
@@ -39,12 +50,22 @@ impl WorkerSpec {
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct WorkerStatus {
+    pub started: Option<DateTime<Utc>>,
+    pub ended: Option<DateTime<Utc>>,
+    pub phase: Option<WorkerPhase>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct GitConfig {
     #[serde(rename = "cloneURL")]
-    commit: Option<String>,
+    pub clone_url: Option<String>,
+    pub commit: Option<String>,
     #[serde(rename = "ref")]
-    reference: Option<String>,
-    init_submodules: Option<bool>,
+    pub reference: Option<String>,
+    pub init_submodules: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -74,6 +95,7 @@ pub enum LogLevel {
     Error,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum WorkerPhase {
     #[serde(rename = "ABORTED")]

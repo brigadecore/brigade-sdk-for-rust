@@ -1,46 +1,67 @@
-use crate::{meta::ObjectMeta, worker::WorkerPhase};
+use crate::{
+    meta::{ObjectMeta, TypeMeta},
+    rest::Client,
+    worker::{Worker, WorkerPhase},
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Event {
-    metadata: Option<ObjectMeta>,
-    worker_phases: Option<Vec<WorkerPhase>>,
+    pub metadata: ObjectMeta,
+    #[serde(flatten)]
+    pub type_meta: Option<TypeMeta>,
+
+    pub project_id: Option<String>,
+    pub source: String,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub labels: HashMap<String, String>,
+    pub short_title: Option<String>,
+    pub long_title: Option<String>,
+    pub git: Option<GitDetails>,
+    pub payload: Option<String>,
+    pub worker: Option<Worker>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EventSubscription {
-    source: String,
-    types: Vec<String>,
-    labels: HashMap<String, String>,
+    pub source: String,
+    pub types: Vec<String>,
+    pub labels: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EventsSelector {
-    project_id: Option<String>,
-    worker_phases: Option<Vec<WorkerPhase>>,
+    pub project_id: Option<String>,
+    pub worker_phases: Option<Vec<WorkerPhase>>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GitDetails {
-    clone_url: Option<String>,
-    commit: Option<String>,
+    #[serde(rename = "cloneURL")]
+    pub clone_url: Option<String>,
+    pub commit: Option<String>,
     #[serde(rename = "ref")]
-    reference: Option<String>,
+    pub reference: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelManyEventsResult {
-    count: i32,
+    pub count: i64,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteManyEventsResult {
-    count: i32,
+    pub count: i64,
+}
+
+pub struct EventsClient {
+    pub client: Client,
 }
