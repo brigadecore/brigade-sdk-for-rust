@@ -1,11 +1,11 @@
 use crate::{
+    client::Client,
     events::EventSubscription,
     meta::{APIVersion, Kind, List, ListOptions, ObjectMeta, TypeMeta},
-    rest::{Client, ClientConfig},
+    rest::ClientConfig,
     worker::WorkerSpec,
 };
 use anyhow::{Error, Result};
-use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_with::*;
 
@@ -63,52 +63,34 @@ pub struct ProjectsClient {
 
 impl ProjectsClient {
     pub fn new(address: String, cfg: ClientConfig, token: Option<String>) -> Result<Self, Error> {
-        let client = Client::new(address, cfg, token)?;
+        let client = Client::new(address, "projects".to_string(), cfg, token)?;
         Ok(Self { client })
     }
 
     pub async fn get(&self, id: String) -> Result<Project, Error> {
-        let url = format!("{}/v2/projects/{}", self.client.address, id);
-        let res = self.client.req(Method::GET, &url, None).send().await?;
-        let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
+        let project = self.client.get::<Project>(id).await?;
         Ok(project)
     }
 
     pub async fn create(&self, project: &Project) -> Result<Project, Error> {
-        let url = format!("{}/v2/projects", self.client.address);
         let mut project = project.clone();
         self.ensure_project_meta(&mut project);
-        let res = self
-            .client
-            .req(Method::POST, &url, None)
-            .json(&project)
-            .send()
-            .await?;
-        let project: Project = serde_json::from_str(&res.text().await?.to_string())?;
+        let project = self.client.create(&project).await?;
         Ok(project)
     }
 
     pub async fn update(&self, project: &Project) -> Result<Project, Error> {
-        let url = format!(
-            "{}/v2/projects/{}",
-            self.client.address, project.metadata.id
-        );
         let mut project = project.clone();
         self.ensure_project_meta(&mut project);
-        let res = self
+        let project = self
             .client
-            .req(Method::PUT, &url, None)
-            .json(&project)
-            .send()
+            .update(project.metadata.id.clone(), &project)
             .await?;
-        let str = &res.text().await?.to_string();
-        let project: Project = serde_json::from_str(str)?;
         Ok(project)
     }
 
     pub async fn delete(&self, id: String) -> Result<(), Error> {
-        let url = format!("{}/v2/projects/{}", self.client.address, id);
-        self.client.req(Method::DELETE, &url, None).send().await?;
+        self.client.delete::<Project>(id).await?;
         Ok(())
     }
 
@@ -117,9 +99,7 @@ impl ProjectsClient {
         _: Option<ProjectsSelector>,
         opts: Option<ListOptions>,
     ) -> Result<List<Project>, Error> {
-        let url = format!("{}/v2/projects", self.client.address);
-        let res = self.client.req(Method::GET, &url, opts).send().await?;
-        let projects: List<Project> = serde_json::from_str(&res.text().await?.to_string())?;
+        let projects = self.client.list(opts).await?;
         Ok(projects)
     }
 
