@@ -1,4 +1,5 @@
 use crate::{container::ContainerSpec, job::Job};
+use anyhow::Error;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::*;
@@ -96,7 +97,7 @@ pub enum LogLevel {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub enum WorkerPhase {
     #[serde(rename = "ABORTED")]
     Aborted,
@@ -118,4 +119,24 @@ pub enum WorkerPhase {
     TimedOut,
     #[serde(rename = "UNKNOWN")]
     Unknown,
+}
+
+impl WorkerPhase {
+    pub fn vec_to_query_param(vec: Vec<Self>) -> Result<String, Error> {
+        // let mut phases: Vec<String> = Vec::new();
+        // for p in vec.iter() {
+        //     let str = serde_json::to_string(p)?;
+        //     phases.push(str);
+        // }
+        // vec.iter().enumerate().map(|(i, &x)| {});
+        // Ok(phases.join(","))
+        todo!()
+    }
+}
+
+#[test]
+fn test_vec() {
+    let v = vec![WorkerPhase::Succeeded];
+    let str = WorkerPhase::vec_to_query_param(v).unwrap();
+    println!("{}", &str);
 }
