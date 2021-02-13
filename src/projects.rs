@@ -68,7 +68,7 @@ impl ProjectsClient {
     }
 
     pub async fn get(&self, id: String) -> Result<Project, Error> {
-        let project = self.client.get::<Project>(id).await?;
+        let project = self.client.get::<Project, Project>(id).await?;
         Ok(project)
     }
 

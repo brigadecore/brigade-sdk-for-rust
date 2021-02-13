@@ -27,6 +27,7 @@ pub enum APIVersion {
 pub enum Kind {
     Token,
     Project,
+    Event,
 }
 
 #[skip_serializing_none]
@@ -34,7 +35,7 @@ pub enum Kind {
 #[serde(rename_all = "camelCase")]
 pub struct List<T: Serialize + Sized> {
     pub metadata: ListMeta,
-    pub items: Vec<T>,
+    pub items: Option<Vec<T>>,
 }
 
 #[skip_serializing_none]
