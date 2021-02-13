@@ -26,20 +26,26 @@ impl Client {
 
 // #[async_trait::async_trait]
 impl Client {
-    pub async fn get<T: Serialize + DeserializeOwned + Sized>(
+    pub async fn get<
+        T: Serialize + DeserializeOwned + Sized,
+        U: Serialize + DeserializeOwned + Sized,
+    >(
         &self,
         id: String,
-    ) -> Result<T, Error> {
+    ) -> Result<U, Error> {
         let url = format!("{}/v2/{}/{}", self.rest.address, self.url_path, id);
         let res = self.rest.req(Method::GET, &url, None).send().await?;
-        let obj: T = serde_json::from_str(&res.text().await?)?;
+        let obj: U = serde_json::from_str(&res.text().await?)?;
         Ok(obj)
     }
 
-    pub async fn create<T: Serialize + DeserializeOwned + Sized + Send + Clone>(
+    pub async fn create<
+        T: Serialize + DeserializeOwned + Sized + Send + Clone,
+        U: Serialize + DeserializeOwned + Sized,
+    >(
         &self,
         t: &T,
-    ) -> Result<T, Error> {
+    ) -> Result<U, Error> {
         let url = format!("{}/v2/{}", self.rest.address, self.url_path);
         let res = self
             .rest
@@ -47,7 +53,9 @@ impl Client {
             .json(&t)
             .send()
             .await?;
-        let obj: T = serde_json::from_str(&res.text().await?)?;
+        let res = &res.text().await?;
+        println!("{}", res);
+        let obj: U = serde_json::from_str(res)?;
         Ok(obj)
     }
 
@@ -90,7 +98,7 @@ impl Client {
     // This utility method returns a properly formatted request builder
     // back to a specific client, which can then apply any query
     // parameters it needs when listing objects.
-    pub async fn list_req(&self, opts: Option<ListOptions>) -> RequestBuilder {
+    pub fn list_req(&self, opts: Option<ListOptions>) -> RequestBuilder {
         let url = format!("{}/v2/{}", self.rest.address, self.url_path);
         self.rest.req(Method::GET, &url, opts)
     }
@@ -109,7 +117,10 @@ mod test {
     #[tokio::test]
     async fn test_get_project() {
         let cl = get_client("projects".to_string()).await;
-        let project = cl.get::<Project>("hello-world".to_string()).await.unwrap();
+        let project = cl
+            .get::<Project, Project>("hello-world".to_string())
+            .await
+            .unwrap();
         println!("{:#?}", project);
     }
 
@@ -126,7 +137,7 @@ mod test {
             script,
         );
         ensure_project_meta(&mut project);
-        let project = cl.create(&project).await.unwrap();
+        let project = cl.create::<Project, Project>(&project).await.unwrap();
         println!("{:#?}", project);
     }
 
@@ -134,7 +145,7 @@ mod test {
     async fn test_update_project() {
         let cl = get_client("projects".to_string()).await;
         let mut project = cl
-            .get::<Project>("hello-rust-sdk".to_string())
+            .get::<Project, Project>("hello-rust-sdk".to_string())
             .await
             .unwrap();
         ensure_project_meta(&mut project);
