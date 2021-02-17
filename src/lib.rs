@@ -6,5 +6,4 @@ pub mod events;
 pub mod job;
 pub mod meta;
 pub mod projects;
-pub mod rest;
 pub mod worker;
