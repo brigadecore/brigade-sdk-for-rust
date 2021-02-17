@@ -1,14 +1,27 @@
-use crate::{
-    meta::{List, ListOptions},
-    rest::{self, ClientConfig},
-};
+use crate::meta::{List, ListOptions};
 use anyhow::{Error, Result};
-use reqwest::{Method, RequestBuilder};
+use reqwest::{IntoUrl, Method, RequestBuilder};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_with::*;
 
+#[derive(Debug, Clone)]
+pub struct ClientConfig {
+    pub allow_insecure_connections: bool,
+}
+
+impl ClientConfig {
+    pub fn new() -> Self {
+        Self {
+            allow_insecure_connections: false,
+        }
+    }
+}
+
 pub struct Client {
-    pub rest: rest::Client,
+    pub rest: reqwest::Client,
+    pub config: ClientConfig,
+    pub base_address: String,
+    pub token: Option<String>,
     pub url_path: String,
 }
 
@@ -16,26 +29,53 @@ impl Client {
     pub fn new(
         address: String,
         url_path: String,
-        cfg: ClientConfig,
+        config: ClientConfig,
         token: Option<String>,
     ) -> Result<Self, Error> {
-        let rest = rest::Client::new(address, cfg, token)?;
-        Ok(Self { rest, url_path })
+        let rest = reqwest::Client::builder()
+            .danger_accept_invalid_certs(config.allow_insecure_connections)
+            .build()?;
+        Ok(Self {
+            rest,
+            url_path,
+            config,
+            base_address: address,
+            token,
+        })
     }
 }
 
-// #[async_trait::async_trait]
 impl Client {
-    pub async fn get<
-        T: Serialize + DeserializeOwned + Sized,
-        U: Serialize + DeserializeOwned + Sized,
-    >(
+    pub fn req<U: IntoUrl>(
+        &self,
+        method: Method,
+        url: U,
+        opts: Option<ListOptions>,
+    ) -> RequestBuilder {
+        let mut req = self.rest.request(method, url);
+
+        if let Some(token) = self.token.as_ref() {
+            req = req.bearer_auth(token);
+        };
+        if let Some(opts) = opts {
+            if let Some(c) = opts.continue_id {
+                req = req.query(&[("continue", c)]);
+            }
+            if let Some(l) = opts.limit {
+                req = req.query(&[("limit", l)]);
+            }
+        }
+
+        req
+    }
+
+    pub async fn get<T: Serialize + DeserializeOwned + Sized>(
         &self,
         id: String,
-    ) -> Result<U, Error> {
-        let url = format!("{}/v2/{}/{}", self.rest.address, self.url_path, id);
-        let res = self.rest.req(Method::GET, &url, None).send().await?;
-        let obj: U = serde_json::from_str(&res.text().await?)?;
+    ) -> Result<T, Error> {
+        let url = format!("{}/v2/{}/{}", self.base_address, self.url_path, id);
+        let res = self.req(Method::GET, &url, None).send().await?;
+        let obj: T = serde_json::from_str(&res.text().await?)?;
         Ok(obj)
     }
 
@@ -46,13 +86,8 @@ impl Client {
         &self,
         t: &T,
     ) -> Result<U, Error> {
-        let url = format!("{}/v2/{}", self.rest.address, self.url_path);
-        let res = self
-            .rest
-            .req(Method::POST, &url, None)
-            .json(&t)
-            .send()
-            .await?;
+        let url = format!("{}/v2/{}", self.base_address, self.url_path);
+        let res = self.req(Method::POST, &url, None).json(&t).send().await?;
         let res = &res.text().await?;
         println!("{}", res);
         let obj: U = serde_json::from_str(res)?;
@@ -64,13 +99,8 @@ impl Client {
         id: String,
         t: &T,
     ) -> Result<T, Error> {
-        let url = format!("{}/v2/{}/{}", self.rest.address, self.url_path, id);
-        let res = self
-            .rest
-            .req(Method::PUT, &url, None)
-            .json(&t)
-            .send()
-            .await?;
+        let url = format!("{}/v2/{}/{}", self.base_address, self.url_path, id);
+        let res = self.req(Method::PUT, &url, None).json(&t).send().await?;
         let obj: T = serde_json::from_str(&res.text().await?)?;
         Ok(obj)
     }
@@ -79,8 +109,8 @@ impl Client {
         &self,
         id: String,
     ) -> Result<(), Error> {
-        let url = format!("{}/v2/{}/{}", self.rest.address, self.url_path, id);
-        self.rest.req(Method::DELETE, &url, None).send().await?;
+        let url = format!("{}/v2/{}/{}", self.base_address, self.url_path, id);
+        self.req(Method::DELETE, &url, None).send().await?;
         Ok(())
     }
 
@@ -88,19 +118,19 @@ impl Client {
         &self,
         opts: Option<ListOptions>,
     ) -> Result<List<T>, Error> {
-        let url = format!("{}/v2/{}", self.rest.address, self.url_path);
-        let res = self.rest.req(Method::GET, &url, opts).send().await?;
+        let url = format!("{}/v2/{}", self.base_address, self.url_path);
+        let res = self.req(Method::GET, &url, opts).send().await?;
         let list: List<T> = serde_json::from_str(&res.text().await?)?;
         Ok(list)
     }
 
-    // Specific client might have selectors for listing clients.
+    // Specific clients might have selectors for listing clients.
     // This utility method returns a properly formatted request builder
     // back to a specific client, which can then apply any query
     // parameters it needs when listing objects.
     pub fn list_req(&self, opts: Option<ListOptions>) -> RequestBuilder {
-        let url = format!("{}/v2/{}", self.rest.address, self.url_path);
-        self.rest.req(Method::GET, &url, opts)
+        let url = format!("{}/v2/{}", self.base_address, self.url_path);
+        self.req(Method::GET, &url, opts)
     }
 }
 
@@ -117,10 +147,7 @@ mod test {
     #[tokio::test]
     async fn test_get_project() {
         let cl = get_client("projects".to_string()).await;
-        let project = cl
-            .get::<Project, Project>("hello-world".to_string())
-            .await
-            .unwrap();
+        let project = cl.get::<Project>("hello-world".to_string()).await.unwrap();
         println!("{:#?}", project);
     }
 
@@ -145,7 +172,7 @@ mod test {
     async fn test_update_project() {
         let cl = get_client("projects".to_string()).await;
         let mut project = cl
-            .get::<Project, Project>("hello-rust-sdk".to_string())
+            .get::<Project>("hello-rust-sdk".to_string())
             .await
             .unwrap();
         ensure_project_meta(&mut project);
@@ -164,7 +191,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_list_project() {
+    async fn test_list_projects() {
         let cl = get_client("projects".to_string()).await;
         let projects = cl.list::<Project>(None).await.unwrap();
         println!("{:#?}", projects);

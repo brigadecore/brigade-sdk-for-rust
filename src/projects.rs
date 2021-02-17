@@ -1,8 +1,8 @@
 use crate::{
     client::Client,
+    client::ClientConfig,
     events::EventSubscription,
     meta::{APIVersion, Kind, List, ListOptions, ObjectMeta, TypeMeta},
-    rest::ClientConfig,
     worker::WorkerSpec,
 };
 use anyhow::{Error, Result};
@@ -68,7 +68,7 @@ impl ProjectsClient {
     }
 
     pub async fn get(&self, id: String) -> Result<Project, Error> {
-        let project = self.client.get::<Project, Project>(id).await?;
+        let project = self.client.get::<Project>(id).await?;
         Ok(project)
     }
 
@@ -119,7 +119,7 @@ impl ProjectsClient {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{authn::SessionsClient, authn::Token, rest::ClientConfig};
+    use crate::{authn::SessionsClient, authn::Token, client::ClientConfig};
 
     #[tokio::test]
     async fn test_get_project() {

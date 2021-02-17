@@ -1,6 +1,6 @@
 use crate::{
+    client::{Client, ClientConfig},
     meta::TypeMeta,
-    rest::{Client, ClientConfig},
 };
 use anyhow::Error;
 use reqwest::Method;
@@ -21,12 +21,12 @@ pub struct SessionsClient {
 
 impl SessionsClient {
     pub fn new(address: String, cfg: ClientConfig, token: Option<String>) -> Result<Self, Error> {
-        let client = Client::new(address, cfg, token)?;
+        let client = Client::new(address, "sessions".to_string(), cfg, token)?;
         Ok(SessionsClient { client })
     }
 
     pub async fn create_root_session(&self, pwd: String) -> Result<Token, Error> {
-        let url = format!("{}/v2/sessions", self.client.address);
+        let url = format!("{}/v2/{}", self.client.base_address, self.client.url_path);
         let res = self
             .client
             .req(Method::POST, &url, None)

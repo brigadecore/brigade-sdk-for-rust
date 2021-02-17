@@ -1,7 +1,7 @@
 use crate::{
     client::Client,
+    client::ClientConfig,
     meta::{APIVersion, Kind, List, ListOptions, ObjectMeta, TypeMeta},
-    rest::ClientConfig,
     worker::{Worker, WorkerPhase},
 };
 use anyhow::Error;
@@ -101,7 +101,7 @@ impl EventsClient {
     }
 
     pub async fn get(&self, id: String) -> Result<Event, Error> {
-        let event = self.client.get::<Event, Event>(id).await?;
+        let event = self.client.get::<Event>(id).await?;
         Ok(event)
     }
 
@@ -127,7 +127,6 @@ impl EventsClient {
 
         let res = req.send().await?;
         let str = &res.text().await?;
-        println!("{}", str);
         let events: List<Event> = serde_json::from_str(str)?;
         Ok(events)
     }
@@ -141,11 +140,10 @@ impl EventsClient {
     pub async fn cancel(&self, id: String) -> Result<(), Error> {
         let url = format!(
             "{}/v2/{}/{}/cancellation",
-            self.client.rest.address, self.client.url_path, id
+            self.client.base_address, self.client.url_path, id
         );
         let res = self
             .client
-            .rest
             .req(reqwest::Method::PUT, &url, None)
             .send()
             .await?;
@@ -166,7 +164,7 @@ mod test {
     use super::*;
     use crate::{
         authn::{SessionsClient, Token},
-        rest::ClientConfig,
+        client::ClientConfig,
     };
 
     #[tokio::test]
