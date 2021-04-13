@@ -1,8 +1,18 @@
-use crate::container::ContainerSpec;
-
+use crate::{container::ContainerSpec, job::Job};
+use anyhow::Error;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::*;
 use std::collections::HashMap;
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Worker {
+    pub spec: WorkerSpec,
+    pub status: WorkerStatus,
+    pub jobs: Option<HashMap<String, Job>>,
+}
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -12,6 +22,7 @@ pub struct WorkerSpec {
     pub use_workspace: Option<bool>,
     pub workspace_size: Option<String>,
     pub git: Option<GitConfig>,
+    pub kubernetes: Option<KubernetesConfig>,
     pub job_policies: Option<JobPolicies>,
     pub log_level: Option<LogLevel>,
     pub config_files_directory: Option<String>,
@@ -28,6 +39,7 @@ impl WorkerSpec {
             use_workspace: None,
             workspace_size: None,
             git: None,
+            kubernetes: None,
             job_policies: None,
             log_level: None,
             config_files_directory: None,
@@ -39,12 +51,22 @@ impl WorkerSpec {
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct WorkerStatus {
+    pub started: Option<DateTime<Utc>>,
+    pub ended: Option<DateTime<Utc>>,
+    pub phase: Option<WorkerPhase>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct GitConfig {
     #[serde(rename = "cloneURL")]
-    commit: Option<String>,
+    pub clone_url: Option<String>,
+    pub commit: Option<String>,
     #[serde(rename = "ref")]
-    reference: Option<String>,
-    init_submodules: Option<bool>,
+    pub reference: Option<String>,
+    pub init_submodules: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -74,7 +96,8 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub enum WorkerPhase {
     #[serde(rename = "ABORTED")]
     Aborted,
@@ -96,4 +119,24 @@ pub enum WorkerPhase {
     TimedOut,
     #[serde(rename = "UNKNOWN")]
     Unknown,
+}
+
+impl WorkerPhase {
+    pub fn vec_to_query_param(vec: Vec<Self>) -> Result<String, Error> {
+        // let mut phases: Vec<String> = Vec::new();
+        // for p in vec.iter() {
+        //     let str = serde_json::to_string(p)?;
+        //     phases.push(str);
+        // }
+        // vec.iter().enumerate().map(|(i, &x)| {});
+        // Ok(phases.join(","))
+        todo!()
+    }
+}
+
+#[test]
+fn test_vec() {
+    let v = vec![WorkerPhase::Succeeded];
+    let str = WorkerPhase::vec_to_query_param(v).unwrap();
+    println!("{}", &str);
 }

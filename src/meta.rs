@@ -1,11 +1,13 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::*;
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ObjectMeta {
     pub id: String,
-    pub created: Option<String>,
+    pub created: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -25,6 +27,7 @@ pub enum APIVersion {
 pub enum Kind {
     Token,
     Project,
+    Event,
 }
 
 #[skip_serializing_none]
@@ -32,7 +35,7 @@ pub enum Kind {
 #[serde(rename_all = "camelCase")]
 pub struct List<T: Serialize + Sized> {
     pub metadata: ListMeta,
-    pub items: Vec<T>,
+    pub items: Option<Vec<T>>,
 }
 
 #[skip_serializing_none]
@@ -41,7 +44,7 @@ pub struct List<T: Serialize + Sized> {
 pub struct ListOptions {
     #[serde(rename = "continue")]
     pub continue_id: Option<String>,
-    pub limit: Option<i32>,
+    pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -50,7 +53,7 @@ pub struct ListOptions {
 pub struct ListMeta {
     #[serde(rename = "continue")]
     pub continue_id: Option<String>,
-    pub remaining_item_count: Option<i32>,
+    pub remaining_item_count: Option<i64>,
 }
 
 #[test]
